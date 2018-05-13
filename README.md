@@ -1,2 +1,3 @@
-# cs249-project
-CS249 2018 project
+utilities/ directory:
+- SCWS test dataset retrieval and preprocessing
+
