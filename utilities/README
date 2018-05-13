@@ -1,0 +1,6 @@
+To get and preprocess the SCWS data into JSON format:
+- From within this directory (<root>/utilities)
+- $ ./get_scws.sh
+- $ ./create_scws_json.py
+- The output is in <root>/data/SCWS/ratings.json
+
