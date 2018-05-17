@@ -4,3 +4,7 @@ To get and preprocess the SCWS data into JSON format:
 - $ ./create_scws_json.py
 - The output is in <root>/data/SCWS/ratings.json
 
+To clean a Wikipedia dataset:
+- From within this directory (<root>/utilities)
+- $ perl clean_data.pl <orig_data> > <new_data>
+
