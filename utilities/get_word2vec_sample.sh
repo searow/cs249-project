@@ -1,4 +1,6 @@
-# Copied form https://github.com/tensorflow/models/tree/master/tutorials/embedding
+#!/bin/bash
+
+# Copied from https://github.com/tensorflow/models/tree/master/tutorials/embedding
 
 # Gets the data at the URL, unzips it, and puts it in the data directory.
 mkdir -p ../data
