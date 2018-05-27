@@ -14,6 +14,8 @@ import sys
 import argparse
 import pickle
 import numpy as np
+import datetime
+import time
 
 import collections
 import random
@@ -22,6 +24,10 @@ import math
 
 # Separate annoying tensorflow import warnings.
 print('--- End warnings ---\n\n\n')
+
+# Get the current timestamp for saving a unique fileid.
+ts = time.time()
+timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H_%M_%S')
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -221,6 +227,14 @@ with graph.as_default():
     with tf.name_scope('optimizer'):
         optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
 
+    # Compute normalized verison of the embeddings.
+    normalized_embeddings = [None] * 3
+    for i in range(num_embeddings):
+        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings[i]), 1, keep_dims=True))
+        normalized_embeddings[i] = embeddings[i] / norm
+
+    embed_stack = tf.stack(normalized_embeddings, axis=1)
+
     # Merge all summaries.
     merged = tf.summary.merge_all()
 
@@ -276,6 +290,12 @@ with tf.Session(graph=graph) as session:
             # average_loss is an estimate over the last 2000 batches.
             print('Average loss at step ', step, ': ', average_loss)
             average_loss = 0
+
+        # Save the normalized embeddings every n steps.
+        if step % 2000 == 0:
+            save_embedding = embed_stack.eval()
+            np.save('saved_embeddings_step_' + str(step) + '_' + str(num_embeddings) + '_' + timestamp, save_embedding)
+            print(save_embedding.shape)
 
         # # Perform evaluation (slow) every 10000 steps.
         # if step % 10000 == 0:
