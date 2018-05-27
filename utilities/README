@@ -1,3 +1,13 @@
+To tokenize a words-only (word2vec) dataset:
+- From within this directory (<root>/utilities)
+- $ python tokenize.py --corpus=<path_to_corpus> --vocab_size=<size> --output=<output_file_name>
+- The output will be contained in the same directory as the input corpus.
+
+To get the sample word2vec text8 corpus:
+- From within this directory (<root>/utilities)
+- $ ./get_word2vec_sample.sh
+- The output is in <root>/data/word2vec_sample/text8
+
 To get and preprocess the SCWS data into JSON format:
 - From within this directory (<root>/utilities)
 - $ ./get_scws.sh

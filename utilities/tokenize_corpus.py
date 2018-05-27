@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 # Usage:
-# $ python tokenize_corpus.py <file_to_tokenize> <vocab_size> <output_file_name>
+# $ python tokenize_corpus.py -h
 
-# The <file_to_tokenize> should be space delimited words, no punctuation,
+# The corpus to tokenize should be space delimited words, no punctuation,
 # same as in the text8 corpus for word2vec example.
 # Output file will be in the same directory as the directory that contains
-# <file_to_tokenize>.
+# the input corpus.
 
 # Modified from word2vec_basic.py from tensorflow.
 
@@ -15,30 +15,38 @@ import sys
 import tensorflow as tf
 import collections
 import pickle
+import argparse
 
-if len(sys.argv) != 4:
-    print('Incorrect number of input arguments. Use the following:')
-    print('$ python tokenize_corpus.py <file_to_tokenize> <vocab_size> <output_file_name>')
-    sys.exit(1)
+# Parse the command line arguments into the FLAGS variable.
+parser = argparse.ArgumentParser()
+parser.add_argument('--corpus',
+                    type=str,
+                    required=True,
+                    help='The path to the input corpus to tokenize')
+parser.add_argument('--vocab_size',
+                    type=int,
+                    required=True,
+                    help='The max vocabulary size to use')
+parser.add_argument('--output',
+                    type=str,
+                    required=True,
+                    help='The name of the output file, path will be same as ' +
+                         'input corpus directory')
+FLAGS, unparsed = parser.parse_known_args()
 
 # Get the full path to the desired file, exit with RC=1 if failure.
-full_file_path = os.path.realpath(sys.argv[1])
+full_file_path = os.path.realpath(FLAGS.corpus)
 if not os.path.isfile(full_file_path):
     print('Unable to find the file provided: ' + full_file_path)
     print('Exiting')
     sys.exit(1)
 
 # Parse the input vocab size argument, exit if can't be an int.
-try:
-    vocabulary_size = int(sys.argv[2])
-except ValueError:
-    print('Input vocab size was not an int')
-    print('Exiting')
-    sys.exit(1)
+vocabulary_size = FLAGS.vocab_size
 
 # Get the final full file path for the output file.
 input_file_dir = os.path.split(full_file_path)[0]
-output_file = sys.argv[3]
+output_file = FLAGS.output
 output_file_path = os.path.join(input_file_dir, output_file)
 
 # Print input arguments for debugging.
