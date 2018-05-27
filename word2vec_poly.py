@@ -294,8 +294,8 @@ with tf.Session(graph=graph) as session:
 
     # Write corresponding labels for the embeddings.
     with open(FLAGS.log_dir + '/metadata.tsv', 'w') as f:
-        for i in xrange(vocabulary_size):
-            f.write(reverse_dictionary[i] + '\n')
+        for i in range(vocabulary_size):
+            f.write(reversed_dictionary[i] + '\n')
 
     # Save the model for checkpoints.
     saver.save(session, os.path.join(FLAGS.log_dir, 'model.ckpt')) 
