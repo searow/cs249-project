@@ -16,6 +16,7 @@ import pickle
 import numpy as np
 import datetime
 import time
+import pytz
 
 import collections
 import random
@@ -26,8 +27,8 @@ import math
 print('--- End warnings ---\n\n\n')
 
 # Get the current timestamp for saving a unique fileid.
-ts = time.time()
-timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H_%M_%S')
+ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
+timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -131,11 +132,12 @@ def generate_batch(batch_size, num_skips, skip_window):
 
 # Model parameters
 batch_size = 128
-embedding_size = 128  # Dimension of the embedding vector.
+num_embeddings = 3 # How many embeddings per word.
+embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
 num_skips = 2  # How many times to reuse an input to generate a label.
 num_sampled = 64  # Number of negative examples to sample.
-num_embeddings = 3 # How many embeddings per word.
+
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
@@ -228,12 +230,13 @@ with graph.as_default():
         optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
 
     # Compute normalized verison of the embeddings.
-    normalized_embeddings = [None] * 3
+    normalized_embeddings = [None] * num_embeddings
     for i in range(num_embeddings):
         norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings[i]), 1, keep_dims=True))
         normalized_embeddings[i] = embeddings[i] / norm
 
-    embed_stack = tf.stack(normalized_embeddings, axis=1)
+
+    embed_stack = tf.stack(normalized_embeddings, axis=0)
 
     # Merge all summaries.
     merged = tf.summary.merge_all()
@@ -294,8 +297,9 @@ with tf.Session(graph=graph) as session:
         # Save the normalized embeddings every n steps.
         if step % 2000 == 0:
             save_embedding = embed_stack.eval()
-            np.save('saved_embeddings_step_' + str(step) + '_' + str(num_embeddings) + '_' + timestamp, save_embedding)
-            print(save_embedding.shape)
+            fn = 'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format(step, num_embeddings, embedding_size, timestamp)
+            np.save(fn, save_embedding)
+            print(fn, save_embedding.shape)
 
         # # Perform evaluation (slow) every 10000 steps.
         # if step % 10000 == 0:
