@@ -40,6 +40,10 @@ parser.add_argument('--log_dir',
                     type=str,
                     required=True,
                     help='The log directory to store TensorBoard summaries.')
+parser.add_argument('--out_dir',
+                    type=str,
+                    required=True,
+                    help='The embeddings output directory.')
 FLAGS, unparsed = parser.parse_known_args()
 
 # Make sure that the corpus file exists before continuing.
@@ -52,6 +56,12 @@ if not os.path.exists(FLAGS.log_dir):
     print('Specified log directory does not exist')
     print('Creating log directory...')
     os.makedirs(FLAGS.log_dir)
+
+# Make the out directory if it does not already exist.
+if not os.path.exists(FLAGS.out_dir):
+    print('Specified out directory does not exist')
+    print('Creating out directory...')
+    os.makedirs(FLAGS.out_dir)
 
 # Import tokenized data, count, and dictionary.
 print('Reading the tokenized corpus...')
@@ -68,7 +78,6 @@ with open(FLAGS.corpus, 'rb') as readfile:
 # reversed_dictionary is a dictionary of {token_number: word}
 # vocabulary_size is how many unique words we want to keep track of, all other
 #     words get mapped to 0 (UNKNOWN)
-
 
 # Step 3: Function to generate a training batch for the skip-gram model.
 # data_index is a global used to keep track of index between calls.
@@ -295,9 +304,13 @@ with tf.Session(graph=graph) as session:
             average_loss = 0
 
         # Save the normalized embeddings every n steps.
-        if step % 2000 == 0:
+        if step % 10000 == 0 and step != 0:
             save_embedding = embed_stack.eval()
-            fn = 'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format(step, num_embeddings, embedding_size, timestamp)
+            model_dir = FLAGS.out_dir + '//' + 'saved_embeddings_k_{}_dim_{}_{}'.format(num_embeddings, embedding_size, timestamp)
+            fn = model_dir + '//' + 'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format(step, num_embeddings, embedding_size, timestamp)
+            
+            if not os.path.exists(model_dir):
+                os.makedirs(model_dir)
             np.save(fn, save_embedding)
             print(fn, save_embedding.shape)
 
