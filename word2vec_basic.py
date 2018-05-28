@@ -26,6 +26,9 @@ import argparse
 import random
 from tempfile import gettempdir
 import zipfile
+import datetime
+import time
+import pytz
 
 import numpy as np
 from six.moves import urllib
@@ -33,6 +36,10 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from tensorflow.contrib.tensorboard.plugins import projector
+
+# Get the current timestamp for saving a unique fileid.
+ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
+timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
 
 # Give a folder path as an argument with '--log_dir' to save
 # TensorBoard summaries. Default is a log folder in current directory.
@@ -52,8 +59,8 @@ if not os.path.exists(FLAGS.log_dir):
 
 # Step 1: Download the data.
 url = 'http://mattmahoney.net/dc/'
-print('url')
-print(gettempdir())
+
+
 # pylint: disable=redefined-outer-name
 def maybe_download(filename, expected_bytes):
   """Download a file if not present, and make sure it's the right size."""
@@ -70,7 +77,7 @@ def maybe_download(filename, expected_bytes):
                     '. Can you get to it with a browser?')
   return local_filename
 
-print('maybe_download')
+
 filename = maybe_download('text8.zip', 31344016)
 
 
@@ -86,8 +93,7 @@ vocabulary = read_data(filename)
 print('Data size', len(vocabulary))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
-vocabulary_size = 50000
-
+vocabulary_size = len(set(vocabulary))
 
 def build_dataset(words, n_words):
   """Process raw inputs into a dataset."""
@@ -224,7 +230,7 @@ with graph.as_default():
     optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
 
   # Compute the cosine similarity between minibatch examples and all embeddings.
-  norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
+  norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
   normalized_embeddings = embeddings / norm
   valid_embeddings = tf.nn.embedding_lookup(normalized_embeddings,
                                             valid_dataset)
@@ -241,7 +247,7 @@ with graph.as_default():
   saver = tf.train.Saver()
 
 # Step 5: Begin training.
-num_steps = 100001
+num_steps = 1000001
 
 with tf.Session(graph=graph) as session:
   # Open a writer to write summaries.
@@ -282,6 +288,17 @@ with tf.Session(graph=graph) as session:
       # The average loss is an estimate of the loss over the last 2000 batches.
       print('Average loss at step ', step, ': ', average_loss)
       average_loss = 0
+
+    # Save the normalized embeddings every n steps.
+    if step % 10000 == 0:
+        save_embedding = normalized_embeddings.eval()
+        model_dir = 'output//' + 'saved_embeddings_orig_dim_{}_text8allTokens_{}'.format(embedding_size, timestamp)
+        fn = model_dir + '//' + 'saved_embeddings_orig_step_{}_dim_{}_text8allTokens_{}'.format(step, embedding_size, timestamp)
+        
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+        np.save(fn, save_embedding)
+        print(fn, save_embedding.shape)
 
     # Note that this is expensive (~20% slowdown if computed every 500 steps)
     if step % 10000 == 0:
