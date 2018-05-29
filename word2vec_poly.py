@@ -24,12 +24,32 @@ import random
 import tensorflow as tf
 import math
 
-# Separate annoying tensorflow import warnings.
+# Separate annoying tensorflow import warnings
 print('--- End warnings ---\n\n\n')
+
+
+# Model parameters
+batch_size = 128
+num_embeddings = 3 # How many embeddings per word.
+embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
+skip_window = 1  # How many words to consider left and right.
+num_skips = 2  # How many times to reuse an input to generate a label.
+num_sampled = 64  # Number of negative examples to sample.
+
+
+# We pick a random validation set to sample nearest neighbors. Here we limit the
+# validation samples to the words that have a low numeric ID, which by
+# construction are also the most frequent. These 3 variables are used only for
+# displaying model accuracy, they don't affect calculation.
+valid_size = 16  # Random set of words to evaluate similarity on.
+valid_window = 100  # Only pick dev samples in the head of the distribution.
+valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
 timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
+model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
+        num_embeddings, embedding_size, timestamp)
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -39,7 +59,7 @@ parser.add_argument('--corpus',
                     help='The path to the tokenized corpus to train on')
 FLAGS, unparsed = parser.parse_known_args()
 
-log_dir = 'log'
+log_dir = 'log/{}'.format(model_str)
 out_dir = 'output'
 
 # Make sure that the corpus file exists before continuing.
@@ -136,22 +156,6 @@ def generate_batch(batch_size, num_skips, skip_window):
     data_index = (data_index + len(data) - span) % len(data)
     return batch, labels
 
-# Model parameters
-batch_size = 128
-num_embeddings = 3 # How many embeddings per word.
-embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
-skip_window = 1  # How many words to consider left and right.
-num_skips = 2  # How many times to reuse an input to generate a label.
-num_sampled = 64  # Number of negative examples to sample.
-
-
-# We pick a random validation set to sample nearest neighbors. Here we limit the
-# validation samples to the words that have a low numeric ID, which by
-# construction are also the most frequent. These 3 variables are used only for
-# displaying model accuracy, they don't affect calculation.
-valid_size = 16  # Random set of words to evaluate similarity on.
-valid_window = 100  # Only pick dev samples in the head of the distribution.
-valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Build the computational graph.
 print('Building computational graph...')
@@ -305,9 +309,7 @@ with tf.Session(graph=graph) as session:
         # Save the normalized embeddings every n steps.
         if step % save_steps == 0:
             save_embedding = embed_stack.eval()
-            model_dir = out_dir + '/' + \
-                    'saved_embeddings_k_{}_dim_{}_{}'.format( \
-                    num_embeddings, embedding_size, timestamp)
+            model_dir = '{}/{}'.format(out_dir, model_str)
             fn = model_dir + '/' + \
                     'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format( \
                     step, num_embeddings, embedding_size, timestamp)
