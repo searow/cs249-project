@@ -34,7 +34,7 @@ num_embeddings = 3 # How many embeddings per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
 num_skips = 2  # How many times to reuse an input to generate a label.
-num_sampled = 64  # Number of negative examples to sample.
+num_sampled = 10 # Number of negative examples to sample.
 
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
@@ -175,21 +175,31 @@ with graph.as_default():
         # embedding mapping as well.
         embeddings = [None] * num_embeddings
         embeds = [None] * num_embeddings
+        train_counts_embed = [None] * num_embeddings
         for i in range(num_embeddings):
             with tf.name_scope('embeddings-' + str(i)):
                 embeddings[i] = tf.Variable(
                     tf.random_uniform(
                         [vocabulary_size, embedding_size], -1.0, 1.0))
                 embeds[i] = tf.nn.embedding_lookup(embeddings[i], train_inputs)
+            with tf.name_scope('embed_counts-' + str(i)):
+                train_counts_embed[i] = tf.Variable(
+                                            tf.zeros(shape=(vocabulary_size,),
+                                                     dtype=tf.int32))
 
         # Make one variable for each polysemous embedding's weight matrix.
         nce_weights = [None] * num_embeddings
+        train_counts_nce = [None] * num_embeddings
         for i in range(num_embeddings):
             with tf.name_scope('weights-' + str(i)):
                 nce_weights[i] = tf.Variable(
                     tf.truncated_normal(
                         [vocabulary_size, embedding_size],
                         stddev=1.0 / math.sqrt(embedding_size)))
+            with tf.name_scope('nce_counts-' + str(i)):
+                train_counts_nce[i] = tf.Variable(
+                                            tf.zeros(shape=(vocabulary_size,),
+                                                     dtype=tf.int32))
 
         # Make one bias for each polysemous embedding's weight matrix.
         nce_biases = [None] * num_embeddings
@@ -227,6 +237,9 @@ with graph.as_default():
     # Add the MIN node at the end of the loss functions.
     with tf.name_scope('min-losses'):
         loss_min = tf.reduce_min(loss_grouped, axis=1)
+
+    with tf.name_scope('argmin-losses'):
+        loss_argmin = tf.argmin(loss_grouped, axis=1)
 
     # Add the MEAN function at the end of it all for the batch.
     with tf.name_scope('loss'):
@@ -286,10 +299,14 @@ with tf.Session(graph=graph) as session:
         # in the list of returned values for session.run()
         # Also, evaluate the merged op to get all summaries from the returned "summary" variable.
         # Feed metadata variable to session for visualizing the graph in TensorBoard.
-        _, summary, loss_val = session.run([optimizer, merged, loss],
+        _, summary, loss_val, current_argmin = session.run([optimizer, merged, loss, loss_argmin],
                                            feed_dict=feed_dict,
                                            run_metadata=run_metadata)
         average_loss += loss_val
+
+        # Uncomment to print the argmins at various steps
+        # if step % 100 == 0:
+        #     print(current_argmin)
 
         # Add returned summaries to writer in each step.
         writer.add_summary(summary, step)
