@@ -2,6 +2,7 @@
 
 # Usage:
 # $ python word2vec_poly.py -h
+# log_dir and out_dir are manual changes
 
 # Modified from word2vec_basic.py from tensorflow.
 
@@ -36,15 +37,10 @@ parser.add_argument('--corpus',
                     type=str,
                     required=True,
                     help='The path to the tokenized corpus to train on')
-parser.add_argument('--log_dir',
-                    type=str,
-                    required=True,
-                    help='The log directory to store TensorBoard summaries.')
-parser.add_argument('--out_dir',
-                    type=str,
-                    required=True,
-                    help='The embeddings output directory.')
 FLAGS, unparsed = parser.parse_known_args()
+
+log_dir = 'log'
+out_dir = 'output'
 
 # Make sure that the corpus file exists before continuing.
 if not os.path.isfile(FLAGS.corpus):
@@ -52,16 +48,17 @@ if not os.path.isfile(FLAGS.corpus):
     sys.exit(1)
 
 # Make the log directory if it does not already exist.
-if not os.path.exists(FLAGS.log_dir):
-    print('Specified log directory does not exist')
+if not os.path.exists(log_dir):
+    print('log directory does not exist')
     print('Creating log directory...')
-    os.makedirs(FLAGS.log_dir)
+    os.makedirs(log_dir)
 
 # Make the out directory if it does not already exist.
-if not os.path.exists(FLAGS.out_dir):
-    print('Specified out directory does not exist')
-    print('Creating out directory...')
-    os.makedirs(FLAGS.out_dir)
+if not os.path.exists(out_dir):
+    print('output directory does not exist')
+    print('Creating output directory...')
+    os.makedirs(out_dir)
+    os.chmod(out_dir, 0o777)
 
 # Import tokenized data, count, and dictionary.
 print('Reading the tokenized corpus...')
@@ -257,10 +254,12 @@ with graph.as_default():
     saver = tf.train.Saver()
 
 # Begin training.
-num_steps = 100001
+num_steps = 1000001
+save_steps = num_steps//10
+
 with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
-    writer = tf.summary.FileWriter(FLAGS.log_dir, session.graph)
+    writer = tf.summary.FileWriter(log_dir, session.graph)
 
     # Initialize the embeddings, weights, and biases.
     print('Initializing variables...')
@@ -304,13 +303,18 @@ with tf.Session(graph=graph) as session:
             average_loss = 0
 
         # Save the normalized embeddings every n steps.
-        if step % 10000 == 0 and step != 0:
+        if step % save_steps == 0:
             save_embedding = embed_stack.eval()
-            model_dir = FLAGS.out_dir + '//' + 'saved_embeddings_k_{}_dim_{}_{}'.format(num_embeddings, embedding_size, timestamp)
-            fn = model_dir + '//' + 'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format(step, num_embeddings, embedding_size, timestamp)
+            model_dir = out_dir + '/' + \
+                    'saved_embeddings_k_{}_dim_{}_{}'.format( \
+                    num_embeddings, embedding_size, timestamp)
+            fn = model_dir + '/' + \
+                    'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format( \
+                    step, num_embeddings, embedding_size, timestamp)
             
             if not os.path.exists(model_dir):
                 os.makedirs(model_dir)
+                os.chmod(model_dir, 0o777)
             np.save(fn, save_embedding)
             print(fn, save_embedding.shape)
 
@@ -330,11 +334,11 @@ with tf.Session(graph=graph) as session:
     # final_embeddings = normalized_embeddings.eval()
 
     # Write corresponding labels for the embeddings.
-    with open(FLAGS.log_dir + '/metadata.tsv', 'w') as f:
+    with open(log_dir + '/metadata.tsv', 'w') as f:
         for i in range(vocabulary_size):
             f.write(reversed_dictionary[i] + '\n')
 
     # Save the model for checkpoints.
-    saver.save(session, os.path.join(FLAGS.log_dir, 'model.ckpt')) 
+    saver.save(session, os.path.join(log_dir, 'model.ckpt')) 
 
 writer.close()
