@@ -1,3 +1,16 @@
+# Usage:
+#
+# folder_name = output folder with the saved embeddings
+# k = number of embeddings per word
+# corpus = tokenized corpus file
+# words = words to plot
+#
+# If testing word embeddings from word2vec_basic.py:
+#	k = 1
+#	And change:
+#		pca.fit_transform(data[i][plot_only, :])
+#		pca.fit_transform(data[plot_only, :])
+
 from os import path, listdir
 from sys import exit
 import numpy as np
@@ -7,8 +20,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 # Hardcoded Elements:
-k = 1
-folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/saved_embeddings_orig_dim_128_text8allTokens_2018-05-28-16:00:46'
+k = 3
+folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/saved_embeddings_k_3_dim_100_2018-05-28-20:52:23'
 
 corpus = 'data/word2vec_sample/text8_tokenized_50000'
 words = ['king', 'queen', 'actor', 'actress', 'father', 'mother']#'apple', 'banana', 'pear', 'microsoft', 'google'] 
@@ -73,18 +86,15 @@ try:
 		labels_list = []
 
 		# Condition embeddings/labels
-		if(k == 1):
-			for i in range(k):
-				low_dim_embs = pca.fit_transform(data[plot_only, :])
-				low_dim_embs_list.append(low_dim_embs)
+		for i in range(k):
+			low_dim_embs = pca.fit_transform(data[i][plot_only, :])
+			low_dim_embs_list.append(low_dim_embs)
+			if k == 1:
 				labels = [reversed_dictionary[j] for j in plot_only]
-				labels_list += labels
-		else:
-			for i in range(k):
-				low_dim_embs = pca.fit_transform(data[i][plot_only, :])
-				low_dim_embs_list.append(low_dim_embs)
-				labels = [reversed_dictionary[j] + '_' + str(i) for j in plot_only]
-				labels_list += labels
+			else:
+				labels = [reversed_dictionary[j] + '_' + str(i) \
+					for j in plot_only]
+			labels_list += labels
 
 		#Plot
 		plot_with_labels(

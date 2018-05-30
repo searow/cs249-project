@@ -2,7 +2,9 @@
 
 # Usage:
 # $ python word2vec_poly.py -h
-# log_dir and out_dir are manual changes
+#
+# Model parameters are hardcorded, should be moved to the top of the code
+# log_dir and out_dir are hardcoded, the model name is automatic.
 
 # Modified from word2vec_basic.py from tensorflow.
 
@@ -27,7 +29,6 @@ import math
 # Separate annoying tensorflow import warnings
 print('--- End warnings ---\n\n\n')
 
-
 # Model parameters
 batch_size = 128
 num_embeddings = 3 # How many embeddings per word.
@@ -35,7 +36,6 @@ embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
 num_skips = 2  # How many times to reuse an input to generate a label.
 num_sampled = 10 # Number of negative examples to sample.
-
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
@@ -45,11 +45,15 @@ valid_size = 16  # Random set of words to evaluate similarity on.
 valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
+# Training parameters
+num_steps = 1000001
+save_steps = num_steps//10
+
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
 timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
-model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
-        num_embeddings, embedding_size, timestamp)
+model_str = 'model_k_{}_dim_{}_neg_{}_{}'.format( \
+        num_embeddings, embedding_size, num_sampled, timestamp)
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -59,7 +63,7 @@ parser.add_argument('--corpus',
                     help='The path to the tokenized corpus to train on')
 FLAGS, unparsed = parser.parse_known_args()
 
-log_dir = 'log/{}'.format(model_str)
+log_dir = 'log'
 out_dir = 'output'
 
 # Make sure that the corpus file exists before continuing.
@@ -68,10 +72,11 @@ if not os.path.isfile(FLAGS.corpus):
     sys.exit(1)
 
 # Make the log directory if it does not already exist.
-if not os.path.exists(log_dir):
+if not os.path.exists('log'):
     print('log directory does not exist')
     print('Creating log directory...')
-    os.makedirs(log_dir)
+    os.makedirs('log')
+    os.chmod(log_dir, 0o777)
 
 # Make the out directory if it does not already exist.
 if not os.path.exists(out_dir):
@@ -79,6 +84,14 @@ if not os.path.exists(out_dir):
     print('Creating output directory...')
     os.makedirs(out_dir)
     os.chmod(out_dir, 0o777)
+
+# Create Model Directories
+model_log_dir = '{}/{}'.format(log_dir, model_str)
+model_out_dir = '{}/{}'.format(out_dir, model_str)
+
+os.makedirs(model_log_dir)
+os.makedirs(model_out_dir)
+os.chmod(model_out_dir, 0o777)
 
 # Import tokenized data, count, and dictionary.
 print('Reading the tokenized corpus...')
@@ -271,12 +284,9 @@ with graph.as_default():
     saver = tf.train.Saver()
 
 # Begin training.
-num_steps = 1000001
-save_steps = num_steps//10
-
 with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
-    writer = tf.summary.FileWriter(log_dir, session.graph)
+    writer = tf.summary.FileWriter(model_log_dir, session.graph)
 
     # Initialize the embeddings, weights, and biases.
     print('Initializing variables...')
@@ -326,14 +336,10 @@ with tf.Session(graph=graph) as session:
         # Save the normalized embeddings every n steps.
         if step % save_steps == 0:
             save_embedding = embed_stack.eval()
-            model_dir = '{}/{}'.format(out_dir, model_str)
-            fn = model_dir + '/' + \
-                    'saved_embeddings_step_{}_k_{}_dim_{}_{}'.format( \
-                    step, num_embeddings, embedding_size, timestamp)
+            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_{}'.format( \
+                    model_out_dir, step, num_embeddings, embedding_size, \
+                    num_sampled, timestamp)
             
-            if not os.path.exists(model_dir):
-                os.makedirs(model_dir)
-                os.chmod(model_dir, 0o777)
             np.save(fn, save_embedding)
             print(fn, save_embedding.shape)
 
@@ -353,11 +359,11 @@ with tf.Session(graph=graph) as session:
     # final_embeddings = normalized_embeddings.eval()
 
     # Write corresponding labels for the embeddings.
-    with open(log_dir + '/metadata.tsv', 'w') as f:
+    with open(model_log_dir + '/metadata.tsv', 'w') as f:
         for i in range(vocabulary_size):
             f.write(reversed_dictionary[i] + '\n')
 
     # Save the model for checkpoints.
-    saver.save(session, os.path.join(log_dir, 'model.ckpt')) 
+    saver.save(session, os.path.join(model_log_dir, 'model.ckpt')) 
 
 writer.close()
