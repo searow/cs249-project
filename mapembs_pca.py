@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 # Hardcoded Elements:
 k = 3
-folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/saved_embeddings_k_3_dim_100_2018-05-28-20:52:23'
+folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/model_k_3_dim_100_neg_10_2018-05-29-20:02:38'
 
 corpus = 'data/word2vec_sample/text8_tokenized_50000'
 words = ['king', 'queen', 'actor', 'actress', 'father', 'mother']#'apple', 'banana', 'pear', 'microsoft', 'google'] 
@@ -55,6 +55,10 @@ def plot_with_labels(low_dim_embs, labels, filename):
 				ha='right',
 				va='bottom',
 				fontsize=35)
+
+		axes = plt.gca()
+		axes.set_xlim([-1,1])
+		axes.set_ylim([-1,1])
 
 	plt.savefig(filename)
 	plt.close()
