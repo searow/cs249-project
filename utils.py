@@ -34,6 +34,12 @@ def load_as_dict(filepath):
 def vis_train_count(filepath, title, counter_target, counter_context,
                     word_id, id_word, to_vis=['apple', 'amazon'],
                     num_to_vis=10):
+    if type(filepath) is not str or type(title) is not str:
+        raise RuntimeError('filepath and title must be valid strings')
+    if counter_target.shape != counter_context.shape:
+        raise RuntimeError('counter_target and counter_context must be of the same shape')
+    if type(word_id) is not dict or type(id_word) is not dict:
+        raise RuntimeError('word_id and id_word must be valid dictionaries')
     if to_vis:
         ids = [word_id[word] for word in to_vis]
         apsb = '_{}'.format('_'.join(to_vis))
@@ -44,6 +50,8 @@ def vis_train_count(filepath, title, counter_target, counter_context,
         vis_train_count_helper(filepath + aps, title + aps, \
                                counter_context[ids], to_vis)
     if num_to_vis:
+        if type(num_to_vis) is not int or num_to_vis <= 0:
+            raise RuntimeError('num_to_vis must be a positive integer')
         V = counter_context.shape[0]
         ids = random.sample(range(0, V), num_to_vis)
         y_labels = [id_word[id] for id in ids]
@@ -72,7 +80,7 @@ def vis_train_count_helper(filepath, title, mat, y_labels):
     ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
     ax.tick_params(which="minor", bottom=False, left=False)
     ax.set_title(title)
-    # fig.tight_layout()
+    print('Saving plot to {}'.format(title))
     plt.savefig(filepath)
 
 
