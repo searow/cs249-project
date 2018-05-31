@@ -1,5 +1,7 @@
-import inspect, pickle
+import inspect, pickle, random
 from collections import OrderedDict
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def save_as_dict(filepath, *args, **kwargs):
@@ -30,8 +32,56 @@ def load_as_dict(filepath):
 
 
 def vis_train_count(filepath, title, counter_target, counter_context,
-    name_token, token_name, to_vis=['apple', 'amazon'], num_to_vis=100):
-    pass
+                    word_id, id_word, to_vis=['apple', 'amazon'],
+                    num_to_vis=10):
+    if type(filepath) is not str or type(title) is not str:
+        raise RuntimeError('filepath and title must be valid strings')
+    if counter_target.shape != counter_context.shape:
+        raise RuntimeError('counter_target and counter_context must be of the same shape')
+    if type(word_id) is not dict or type(id_word) is not dict:
+        raise RuntimeError('word_id and id_word must be valid dictionaries')
+    if to_vis:
+        ids = [word_id[word] for word in to_vis]
+        apsb = '_{}'.format('_'.join(to_vis))
+        aps = apsb + '_target'
+        vis_train_count_helper(filepath + aps, title + aps, \
+                               counter_target[ids], to_vis)
+        aps = apsb + '_context'
+        vis_train_count_helper(filepath + aps, title + aps, \
+                               counter_context[ids], to_vis)
+    if num_to_vis:
+        if type(num_to_vis) is not int or num_to_vis <= 0:
+            raise RuntimeError('num_to_vis must be a positive integer')
+        V = counter_context.shape[0]
+        ids = random.sample(range(0, V), num_to_vis)
+        y_labels = [id_word[id] for id in ids]
+        apsb = '_rand_{}'.format(num_to_vis)
+        aps = apsb + '_target'
+        vis_train_count_helper(filepath + aps, title + aps, \
+                               counter_target[ids], y_labels)
+        aps = apsb + '_context'
+        vis_train_count_helper(filepath + aps, title + aps, \
+                               counter_context[ids], y_labels)
+
+
+def vis_train_count_helper(filepath, title, mat, y_labels):
+    fig, ax = plt.subplots()
+    im = ax.imshow(mat)
+    ax.figure.colorbar(im, ax=ax)
+    k = mat.shape[1]
+    for i in range(len(y_labels)):
+        for j in range(k):
+            ax.text(j, i, mat[i, j], ha="center", va="center", color="w")
+    for edge, spine in ax.spines.items():
+        spine.set_visible(False)
+    ax.set_xticks(np.arange(k))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_yticklabels(y_labels)
+    ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    ax.set_title(title)
+    print('Saving plot to {}'.format(filepath))
+    plt.savefig(filepath)
 
 
 def save(filepath, obj):
@@ -54,19 +104,36 @@ def proc_filepath(filepath):
 
 
 def main():
-    import numpy as np
-    some_numpy_mat = np.arange(0, 6).reshape(2, 3)
-    xxxxx = [1, 2, 3]
-    y = 'some_str'
-    c = {5: np.array([[7, 7, 7], [7, 7]])}
-    save_as_dict('some_path_to_save',some_numpy_mat, some_numpy_mat, xxxxx, y, 1, True, c)
-    print('Loaded\n',load_as_dict('some_path_to_save'))
-    e = 5
-    c = 2
-    d = -1
-    save_as_dict('x', e, 1000, b=c, f=d)
+    # some_numpy_mat = np.arange(0, 6).reshape(2, 3)
+    # xxxxx = [1, 2, 3]
+    # y = 'some_str'
+    # c = {5: np.array([[7, 7, 7], [7, 7]])}
+    # save_as_dict('some_path_to_save',some_numpy_mat, some_numpy_mat, xxxxx, y, 1, True, c)
+    # print('Loaded\n',load_as_dict('some_path_to_save'))
+    # e = 5
+    # c = 2
+    # d = -1
+    # save_as_dict('x', e, 1000, b=c, f=d)
+    # print('Loaded\n{}'.format(load_as_dict('x.pickle')))
 
-    print('Loaded\n{}'.format(load_as_dict('x.pickle')))
+    import string
+    V = 1000
+    k = 3
+    counter_target = np.arange(0, V * k).reshape(V, k)
+    counter_context = np.random.randint(1000, size=(V, k))
+    name_token = {}
+    token_name = {}
+    for i in range(V):
+        word = ''.join(random.choice(string.ascii_lowercase) \
+                       for _ in range(random.randint(1, 20)))
+        if i == 0:
+            word = 'apple'
+        if i == 1:
+            word = 'amazon'
+        name_token[word] = i
+        token_name[i] = word
+    vis_train_count('some_picture', 'this is a plot', counter_target, \
+                    counter_context, name_token, token_name)
 
 
 if __name__ == '__main__':
