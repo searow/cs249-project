@@ -31,11 +31,11 @@ import math
 print('--- End warnings ---\n\n\n')
 
 # Model parameters
-batch_size = 128
+batch_size = 130
 num_embeddings = 3 # How many embeddings per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
-skip_window = 1  # How many words to consider left and right.
-num_skips = 2  # How many times to reuse an input to generate a label.
+skip_window = 5  # How many words to consider left and right.
+num_skips = 10  # How many times to reuse an input to generate a label.
 num_sampled = 10 # Number of negative examples to sample.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
@@ -53,8 +53,8 @@ save_steps = num_steps//10
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
 timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
-model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
-        num_embeddings, embedding_size, timestamp)
+model_str = 'models_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
+        num_embeddings, embedding_size, num_sampled, skip_window, timestamp)
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -363,9 +363,9 @@ with tf.Session(graph=graph) as session:
         if step % save_steps == 0:
             target_embeddings = embed_stack.eval()
             context_embeddings = nce_stack.eval()
-            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_{}'.format( \
+            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
                     model_out_dir, step, num_embeddings, embedding_size, \
-                    num_sampled, timestamp)
+                    num_sampled, skip_window, timestamp)
             save_as_dict(fn, target_embeddings, context_embeddings, target_counts, context_counts)
 
         # # Perform evaluation (slow) every 10000 steps.
