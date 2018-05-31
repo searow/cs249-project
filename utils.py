@@ -80,7 +80,7 @@ def vis_train_count_helper(filepath, title, mat, y_labels):
     ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
     ax.tick_params(which="minor", bottom=False, left=False)
     ax.set_title(title)
-    print('Saving plot to {}'.format(title))
+    print('Saving plot to {}'.format(filepath))
     plt.savefig(filepath)
 
 
