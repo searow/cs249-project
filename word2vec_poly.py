@@ -52,7 +52,7 @@ save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
+timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
 model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
         num_embeddings, embedding_size, timestamp)
 
@@ -266,14 +266,22 @@ with graph.as_default():
     with tf.name_scope('optimizer'):
         optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
 
-    # Compute normalized verison of the embeddings.
+    # Compute normalized verison of the embeddings and nce weights.
     normalized_embeddings = [None] * num_embeddings
+    normalized_nce_weights = [None] * num_embeddings
     for i in range(num_embeddings):
-        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings[i]), 1, keep_dims=True))
+        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings[i]),
+                                     1,
+                                     keep_dims=True))
         normalized_embeddings[i] = embeddings[i] / norm
+        nce_norm = tf.sqrt(tf.reduce_sum(tf.square(nce_weights[i]),
+                                         1,
+                                         keep_dims=True))
+        normalized_nce_weights[i] = nce_weights[i] / nce_norm
 
 
     embed_stack = tf.stack(normalized_embeddings, axis=0)
+    nce_stack = tf.stack(normalized_nce_weights, axis=0)
 
     # Merge all summaries.
     merged = tf.summary.merge_all()
@@ -292,10 +300,15 @@ with tf.Session(graph=graph) as session:
     # Initialize the embeddings, weights, and biases.
     print('Initializing variables...')
     init.run()
+    target_counts = np.ndarray(shape=(vocabulary_size, 3), dtype=int)
+    context_counts = np.ndarray(shape=(vocabulary_size, 3), dtype=int)
+    target_counts.fill(0)
+    context_counts.fill(0)
 
     print('Training...')
     # Actual training steps.
     average_loss = 0
+    # Debugging counter for how many times each loss was used, can delete.
     counts = [0] * 9
     for step in range(num_steps):
         # Generate a batch of inputs for this step.
@@ -316,16 +329,20 @@ with tf.Session(graph=graph) as session:
                                            run_metadata=run_metadata)
         average_loss += loss_val
 
+        # Get which target and context was trained for each training example.
+        targets_i = current_argmin // num_embeddings
+        contexts_j = current_argmin % num_embeddings
 
-        for item in current_argmin:
-            counts[item] += 1
-        if step % 100 == 0:
-            print(counts)
-        # Uncomment to print the argmins at various steps
+        # Go through training examples and increment each word that is trained.
+        squeeze_labels = np.squeeze(batch_labels)
+        for t, c, b, s in zip(targets_i, contexts_j, batch_inputs, squeeze_labels):
+            target_counts[b, t] += 1
+            context_counts[s, c] += 1
+
+        # for item in current_argmin:
+        #     counts[item] += 1
         # if step % 100 == 0:
-        #     print(current_argmin)
-        #     idx = [[g, i, j] for g, i, j in zip(current_argmin, current_argmin // 3, current_argmin % 3)]
-        #     print(idx)
+        #     print(counts)
 
         # Add returned summaries to writer in each step.
         writer.add_summary(summary, step)
@@ -341,17 +358,15 @@ with tf.Session(graph=graph) as session:
             # average_loss is an estimate over the last 2000 batches.
             print('Average loss at step ', step, ': ', average_loss)
             average_loss = 0
-        save_embedding = embed_stack.eval()
-        print(save_embedding.shape)
 
         # Save the normalized embeddings every n steps.
         if step % save_steps == 0:
-            save_embedding = embed_stack.eval()
+            target_embeddings = embed_stack.eval()
+            context_embeddings = nce_stack.eval()
             fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_{}'.format( \
                     model_out_dir, step, num_embeddings, embedding_size, \
                     num_sampled, timestamp)
-            save_as_dict(fn, save_embedding)
-            print(fn, save_embedding.shape)
+            save_as_dict(fn, target_embeddings, context_embeddings, target_counts, context_counts)
 
         # # Perform evaluation (slow) every 10000 steps.
         # if step % 10000 == 0:
