@@ -52,7 +52,7 @@ save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
+timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
 model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
         num_embeddings, embedding_size, timestamp)
 
@@ -317,10 +317,10 @@ with tf.Session(graph=graph) as session:
         average_loss += loss_val
 
 
-        for item in current_argmin:
-            counts[item] += 1
-        if step % 100 == 0:
-            print(counts)
+        # for item in current_argmin:
+        #     counts[item] += 1
+        # if step % 100 == 0:
+        #     print(counts)
         # Uncomment to print the argmins at various steps
         # if step % 100 == 0:
         #     print(current_argmin)
@@ -341,8 +341,6 @@ with tf.Session(graph=graph) as session:
             # average_loss is an estimate over the last 2000 batches.
             print('Average loss at step ', step, ': ', average_loss)
             average_loss = 0
-        save_embedding = embed_stack.eval()
-        print(save_embedding.shape)
 
         # Save the normalized embeddings every n steps.
         if step % save_steps == 0:
@@ -351,6 +349,7 @@ with tf.Session(graph=graph) as session:
                     model_out_dir, step, num_embeddings, embedding_size, \
                     num_sampled, timestamp)
             save_as_dict(fn, save_embedding)
+            # save_as_dict(fn, save_embedding, <nce_weights>, <target_counts>, <context_counts>)
             print(fn, save_embedding.shape)
 
         # # Perform evaluation (slow) every 10000 steps.
