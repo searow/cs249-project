@@ -29,6 +29,11 @@ def load_as_dict(filepath):
     return load(filepath)
 
 
+def vis_train_count(filepath, title, counter_target, counter_context,
+    name_token, token_name, to_vis=['apple', 'amazon'], num_to_vis=100):
+    pass
+
+
 def save(filepath, obj):
     with open(proc_filepath(filepath), 'wb') as handle:
         pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -54,8 +59,8 @@ def main():
     xxxxx = [1, 2, 3]
     y = 'some_str'
     c = {5: np.array([[7, 7, 7], [7, 7]])}
-    save_as_dict('some_path_to_save', some_numpy_mat, some_numpy_mat, xxxxx, y, 1, True, c)
-    print('Loaded\n', load_as_dict('some_path_to_save'))
+    save_as_dict('some_path_to_save',some_numpy_mat, some_numpy_mat, xxxxx, y, 1, True, c)
+    print('Loaded\n',load_as_dict('some_path_to_save'))
     e = 5
     c = 2
     d = -1

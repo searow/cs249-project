@@ -20,6 +20,7 @@ import numpy as np
 import datetime
 import time
 import pytz
+from utils import *
 
 import collections
 import random
@@ -51,9 +52,9 @@ save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
-model_str = 'model_k_{}_dim_{}_neg_{}_{}'.format( \
-        num_embeddings, embedding_size, num_sampled, timestamp)
+timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
+model_str = 'saved_embeddings_k_{}_dim_{}_{}'.format( \
+        num_embeddings, embedding_size, timestamp)
 
 # Parse the command line arguments into the FLAGS variable.
 parser = argparse.ArgumentParser()
@@ -295,6 +296,7 @@ with tf.Session(graph=graph) as session:
     print('Training...')
     # Actual training steps.
     average_loss = 0
+    counts = [0] * 9
     for step in range(num_steps):
         # Generate a batch of inputs for this step.
         batch_inputs, batch_labels = generate_batch(batch_size,
@@ -314,9 +316,16 @@ with tf.Session(graph=graph) as session:
                                            run_metadata=run_metadata)
         average_loss += loss_val
 
+
+        for item in current_argmin:
+            counts[item] += 1
+        if step % 100 == 0:
+            print(counts)
         # Uncomment to print the argmins at various steps
         # if step % 100 == 0:
         #     print(current_argmin)
+        #     idx = [[g, i, j] for g, i, j in zip(current_argmin, current_argmin // 3, current_argmin % 3)]
+        #     print(idx)
 
         # Add returned summaries to writer in each step.
         writer.add_summary(summary, step)
@@ -332,6 +341,8 @@ with tf.Session(graph=graph) as session:
             # average_loss is an estimate over the last 2000 batches.
             print('Average loss at step ', step, ': ', average_loss)
             average_loss = 0
+        save_embedding = embed_stack.eval()
+        print(save_embedding.shape)
 
         # Save the normalized embeddings every n steps.
         if step % save_steps == 0:
@@ -339,8 +350,7 @@ with tf.Session(graph=graph) as session:
             fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_{}'.format( \
                     model_out_dir, step, num_embeddings, embedding_size, \
                     num_sampled, timestamp)
-            
-            np.save(fn, save_embedding)
+            save_as_dict(fn, save_embedding)
             print(fn, save_embedding.shape)
 
         # # Perform evaluation (slow) every 10000 steps.
