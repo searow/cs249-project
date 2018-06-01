@@ -27,7 +27,7 @@ def eval(eval_test, dictionary, reversed_dictionary,
          counter_mask):
     d = {}
     for i in range(1, 3):
-        word_index = eval_test['word{}'.format(i)]
+        word_index = eval_test['word{}_index'.format(i)]
         sentence = eval_test['word{}_in_context'.format(i)]
         tokenized_sentence = tokenize_sentence( \
             sentence, dictionary)
@@ -52,10 +52,17 @@ def extract_meanings_as_list(target_embeddings, word_index, counter_mask):
 
 def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
     # Alex
+    # e.g. tokenized_sentence=[0, 2, 1, 3, ...]
+    # word_index = 1
+    # context_emb_mat: V x D
+    # Remeber to check bound when using window_size!
     return []
 
 def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_list):
     # Jack
+    scores = []
+    for c in context_embedding_list:
+
     return []
 
 def cosine_sim(emb1, emb2):
