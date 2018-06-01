@@ -44,7 +44,17 @@ def eval(eval_test, dictionary, reversed_dictionary,
 
 def tokenize_sentence(sentence, dictionary):
     # Chris
-    return [0, 1, 2]
+    # sentence = [0, 1, 5, 2, 1, 2, 0]
+
+    unknown_token = 0
+    words = sentence.split()
+    tokenized = []
+    for word in words:
+        if word not in dictionary:
+            tokenized.append(unknown_token)
+        else:
+            tokenized.append(dictionary[word])
+    return tokenized
 
 def extract_meanings_as_list(target_embeddings, word_index, counter_mask):
     # David
