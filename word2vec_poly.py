@@ -49,11 +49,11 @@ valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
 num_steps = 1000001
-save_steps = num_steps//100
+save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
+timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
 model_str = 'models_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
         num_embeddings, embedding_size, num_sampled, skip_window, timestamp)
 
