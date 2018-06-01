@@ -2,4 +2,6 @@ data/
 *.swp
 .ipynb_checkpoints/
 log/
+output/
+*.png
 
