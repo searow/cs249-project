@@ -1,6 +1,9 @@
 import inspect, pickle, random
 from collections import OrderedDict
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError as e:
+    print('No matplotlib so good luck')
 import numpy as np
 
 
