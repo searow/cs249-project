@@ -86,6 +86,11 @@ def vis_train_count_helper(filepath, title, mat, y_labels):
     print('Saving plot to {}'.format(filepath))
     plt.savefig(filepath)
 
+# Returns both the normalized counts and the binary (True/False) counts as the same shape as counts
+def filter_words(cnts, threshold=0.05):
+    norm_cnts = np.zeros(cnts.shape)
+    train_mask = np.zeros(cnts.shape)
+    return norm_cnts, train_mask
 
 def save(filepath, obj):
     with open(proc_filepath(filepath), 'wb') as handle:
@@ -137,7 +142,6 @@ def main():
         token_name[i] = word
     vis_train_count('some_picture', 'this is a plot', counter_target, \
                     counter_context, name_token, token_name)
-
 
 if __name__ == '__main__':
     main()
