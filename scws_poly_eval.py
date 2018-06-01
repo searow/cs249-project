@@ -24,7 +24,7 @@ eval_tests = load(eval_fp) # eval_test = list of dicts.
 
 def eval(eval_test, dictionary, reversed_dictionary,
          target_embeddings, target_counts, context_embeddings,
-         counter_mask):
+         context_counts):
     d = {}
     for i in range(1, 3):
         word_index = eval_test['word{}_index'.format(i)]
@@ -32,7 +32,7 @@ def eval(eval_test, dictionary, reversed_dictionary,
         tokenized_sentence = tokenize_sentence( \
             sentence, dictionary)
         all_meaning_embedding_list = extract_meanings_as_list(target_embeddings, \
-            word_index, counter_mask)
+            word_index, context_counts)
         context_embedding_list = extract_contexts_as_list(\
             tokenized_sentence, \
             word_index, context_embeddings)
@@ -56,9 +56,16 @@ def tokenize_sentence(sentence, dictionary):
             tokenized.append(dictionary[word])
     return tokenized
 
-def extract_meanings_as_list(target_embeddings, word_index, counter_mask):
-    # David
-    return []
+def extract_meanings_as_list(target_embeddings, word_index, context_counts):
+    k = len(target_embeddings)
+    meanings = []
+    counter_mask = filter_words(context_counts[word_index])
+
+    for i in k:
+        if(counter_mask[0][i]):
+            meanings.append[word_index]
+
+    return meanings
 
 def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
     # Alex
