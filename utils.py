@@ -36,8 +36,8 @@ def vis_train_count(filepath, title, counter_target, counter_context,
                     num_to_vis=10):
     if type(filepath) is not str or type(title) is not str:
         raise RuntimeError('filepath and title must be valid strings')
-    if counter_target.shape != counter_context.shape:
-        raise RuntimeError('counter_target and counter_context must be of the same shape')
+    # if counter_target.shape != counter_context.shape:
+    #     raise RuntimeError('counter_target and counter_context must be of the same shape')
     if type(word_id) is not dict or type(id_word) is not dict:
         raise RuntimeError('word_id and id_word must be valid dictionaries')
     if to_vis:
