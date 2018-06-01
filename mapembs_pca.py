@@ -18,15 +18,18 @@ import pickle
 from sklearn.decomposition import PCA
 import matplotlib
 import matplotlib.pyplot as plt
+from utils import load_as_dict
+import pandas as pd
 
 # Hardcoded Elements:
 k = 3
-folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/model_k_3_dim_100_neg_10_2018-05-29-20:02:38'
+folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_3_dim_100_neg_10_swind_5_2018-05-31-15:53:01'
 
 corpus = 'data/word2vec_sample/text8_tokenized_50000'
 words = ['king', 'queen', 'actor', 'actress', 'father', 'mother']#'apple', 'banana', 'pear', 'microsoft', 'google'] 
 
-prefix = 'pca_plotof_'
+prefix_tgt = 'pca_plotof_tgt'
+prefix_nce = 'pca_plotof_ctx'
 
 # Make sure that the corpus file exists before continuing.
 if not path.isdir(folder_name):
@@ -67,13 +70,9 @@ try:
 	set_plot_defaults()
 
 	print('Reading the tokenized corpus...')
-	with open(corpus, 'rb') as readfile:
-		read_obj = pickle.load(readfile)
-		data = read_obj['data']
-		count = read_obj['count']
-		dictionary = read_obj['dictionary']
-		reversed_dictionary = read_obj['reversed_dictionary']
-		vocabulary_size = len(count)
+	read_obj = load_as_dict(corpus)
+	dictionary = read_obj['dictionary']
+	reversed_dictionary = read_obj['reversed_dictionary']
 
 	pca = PCA(n_components=2)
 	plot_only = create_plotID_list(words, dictionary)
@@ -81,29 +80,60 @@ try:
 	print('Plotting...')
 	for bf in listdir(folder_name):
 		# Check for existing plot files
-		if bf.startswith(prefix):
+		if bf.startswith(prefix_tgt) or bf.startswith(prefix_nce):
 			continue
 
 		# Load vectors
-		data = np.load(folder_name + '/' + bf)
+		loaded_data = load_as_dict(folder_name + '/' + bf)
+		tgt_embs = loaded_data['target_embeddings']
+		tgt_cnts = loaded_data['target_counts']
+		nce_embs = loaded_data['context_embeddings']
+		nce_cnts = loaded_data['context_counts']
+
 		low_dim_embs_list = []
 		labels_list = []
 
 		# Condition embeddings/labels
 		for i in range(k):
-			low_dim_embs = pca.fit_transform(data[i][plot_only, :])
+			low_dim_embs = tgt_embs[i][plot_only, :]
 			low_dim_embs_list.append(low_dim_embs)
 			if k == 1:
 				labels = [reversed_dictionary[j] for j in plot_only]
 			else:
 				labels = [reversed_dictionary[j] + '_' + str(i) \
+					+ '_{}'.format(int(tgt_cnts[j][i])) \
 					for j in plot_only]
 			labels_list += labels
 
+		# import pdb; pdb.set_trace()
+		low_dim_embs_list = pca.fit_transform(np.concatenate(low_dim_embs_list))
+
 		#Plot
 		plot_with_labels(
-			np.concatenate(low_dim_embs_list), labels_list, \
-			folder_name + '/' + prefix + bf + '.png')
+			low_dim_embs_list, labels_list, \
+			folder_name + '/' + prefix_tgt + bf + '.png')
+
+		low_dim_embs_list = []
+		labels_list = []
+
+		# Condition embeddings/labels
+		for i in range(k):
+			low_dim_embs = nce_embs[i][plot_only, :]
+			low_dim_embs_list.append(low_dim_embs)
+			if k == 1:
+				labels = [reversed_dictionary[j] for j in plot_only]
+			else:
+				labels = [reversed_dictionary[j] + '_' + str(i) \
+					+ '_{}'.format(int(nce_cnts[j][i])) \
+					for j in plot_only]
+			labels_list += labels
+
+		low_dim_embs_list = pca.fit_transform(np.concatenate(low_dim_embs_list))
+
+		#Plot
+		plot_with_labels(
+			low_dim_embs_list, labels_list, \
+			folder_name + '/' + prefix_nce + bf + '.png')
 
 	print('Finished Plotting!')
 
