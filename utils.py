@@ -4,6 +4,10 @@ try:
     import matplotlib.pyplot as plt
 except ImportError as e:
     print('No matplotlib so good luck')
+try:
+    from sklearn.preprocessing import normalize
+except ImportError as e:
+    print('No sklearn doesnt matter?')
 import numpy as np
 
 
@@ -88,8 +92,8 @@ def vis_train_count_helper(filepath, title, mat, y_labels):
 
 # Returns both the normalized counts and the binary (True/False) counts as the same shape as counts
 def filter_words(cnts, threshold=0.05):
-    norm_cnts = np.zeros(cnts.shape)
-    train_mask = np.zeros(cnts.shape)
+    norm_cnts = normalize(cnts, axis=1, norm='l1')
+    train_mask = norm_cnts < threshold
     return norm_cnts, train_mask
 
 def save(filepath, obj):
