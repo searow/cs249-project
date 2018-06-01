@@ -93,7 +93,7 @@ def vis_train_count_helper(filepath, title, mat, y_labels):
 # Returns both the normalized counts and the binary (True/False) counts as the same shape as counts
 def filter_words(cnts, threshold=0.05):
     norm_cnts = normalize(cnts, axis=1, norm='l1')
-    train_mask = norm_cnts < threshold
+    train_mask = norm_cnts > threshold
     return norm_cnts, train_mask
 
 def save(filepath, obj):
