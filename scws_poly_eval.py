@@ -60,10 +60,9 @@ def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
 
 def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_list):
     # Jack
-    scores = []
-    for c in context_embedding_list:
-
-    return []
+    avg_c = np.mean(context_embedding_list, axis=0)
+    scores = [np.dot(m, avg_c) for m in all_meaning_embedding_list]
+    return all_meaning_embedding_list[np.argmax(scores)]
 
 def cosine_sim(emb1, emb2):
     return np.dot(emb1, emb2)
