@@ -75,7 +75,15 @@ def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
     # word_index = 1
     # context_emb_mat: V x D
     # Remeber to check bound when using window_size!
-    return []
+
+    if word_index < window_size:
+        context_tokens = [token for token in tokenized_sentence[0:word_index+window_size+1] \
+                    if token != tokenized_sentence[word_index]]
+    else:
+        context_tokens = [token for token in tokenized_sentence[word_index-window_size:word_index+window_size+1] \
+                    if token != tokenized_sentence[word_index]]
+
+    return [context_emb_mat[token] for token in context_tokens]
 
 def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_list):
     # Jack
@@ -98,4 +106,3 @@ for eval_test in eval_tests:
 spearman_score = spearmanr(test_scores, true_scores)
 rho_correlation = spearman_score[0]
 print('spearman rho: ', rho_correlation)
-
