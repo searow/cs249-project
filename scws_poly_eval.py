@@ -22,9 +22,8 @@ reversed_dictionary = corpus_loaded['reversed_dictionary']
 # Load eval task.
 eval_tests = load(eval_fp) # eval_test = list of dicts.
 
-def eval(eval_test, dictionary, reversed_dictionary,
-         target_embeddings, target_counts, context_embeddings,
-         context_counts):
+def eval(eval_test, dictionary,
+         target_embeddings, target_mask, context_embeddings):
     d = {}
     for i in range(1, 3):
         word_index = eval_test['word{}_index'.format(i)]
@@ -32,7 +31,7 @@ def eval(eval_test, dictionary, reversed_dictionary,
         tokenized_sentence = tokenize_sentence( \
             sentence, dictionary)
         all_meaning_embedding_list = extract_meanings_as_list(target_embeddings, \
-            word_index, context_counts)
+            word_index, target_mask)
         context_embedding_list = extract_contexts_as_list(\
             tokenized_sentence, \
             word_index, context_embeddings)
@@ -53,17 +52,20 @@ def tokenize_sentence(sentence, dictionary):
         if word not in dictionary:
             tokenized.append(unknown_token)
         else:
-            tokenized.append(dictionary[word])
+            tokenized.append(   dictionary[word])
     return tokenized
 
-def extract_meanings_as_list(target_embeddings, word_index, context_counts):
+def extract_meanings_as_list(target_embeddings, word_index, target_mask):
     k = len(target_embeddings)
     meanings = []
-    counter_mask = filter_words(context_counts[word_index])
 
-    for i in k:
-        if(counter_mask[0][i]):
-            meanings.append[word_index]
+    for i in range(k):
+        if word_index > len(target_mask):
+            print(word_index)
+        if(target_mask[1][word_index][i]):
+            meanings.append(word_index)
+
+    import pdb; pdb.set_trace()
 
     return meanings
 
@@ -86,10 +88,10 @@ def cosine_sim(emb1, emb2):
 
 true_scores = []
 test_scores = []
+target_mask = filter_words(target_counts)
 for eval_test in eval_tests:
-    score = eval(eval_test, dictionary, reversed_dictionary,
-            target_embeddings, target_counts, context_embeddings,
-            context_counts)
+    score = eval(eval_test, reversed_dictionary,
+            target_embeddings, target_mask, context_embeddings)
     test_scores.append(score)
     true_scores.append(eval_test['average_human_rating'])
 
