@@ -33,6 +33,7 @@ print('--- End warnings ---\n\n\n')
 # Model parameters
 batch_size = 130
 num_embeddings = 3 # How many embeddings per word.
+num_weights = 1 # How many contexts per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 5  # How many words to consider left and right.
 num_skips = 10  # How many times to reuse an input to generate a label.
@@ -48,11 +49,11 @@ valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
 num_steps = 1000001
-save_steps = num_steps//10
+save_steps = num_steps//100
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
+timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
 model_str = 'models_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
         num_embeddings, embedding_size, num_sampled, skip_window, timestamp)
 
@@ -202,9 +203,9 @@ with graph.as_default():
                                                      dtype=tf.int32))
 
         # Make one variable for each polysemous embedding's weight matrix.
-        nce_weights = [None] * num_embeddings
-        train_counts_nce = [None] * num_embeddings
-        for i in range(num_embeddings):
+        nce_weights = [None] * num_weights
+        train_counts_nce = [None] * num_weights
+        for i in range(num_weights):
             with tf.name_scope('weights-' + str(i)):
                 nce_weights[i] = tf.Variable(
                     tf.truncated_normal(
@@ -216,18 +217,18 @@ with graph.as_default():
                                                      dtype=tf.int32))
 
         # Make one bias for each polysemous embedding's weight matrix.
-        nce_biases = [None] * num_embeddings
-        for i in range(num_embeddings):
+        nce_biases = [None] * num_weights
+        for i in range(num_weights):
             with tf.name_scope('biases-' + str(i)):
                 nce_biases[i] = tf.Variable(tf.zeros([vocabulary_size]))
 
     # Create the loss functions for each embeddings, of which there are emb^2.
-    losses = [[None] * num_embeddings] * num_embeddings
-    loss_stack = [None] * (num_embeddings ** 2)
+    losses = [[None] * num_weights] * num_embeddings
+    loss_stack = [None] * (num_embeddings * num_weights)
     # Loss functions for each embeddings and loss functions for each weight.
     stack_counter = 0
     for i in range(num_embeddings): # Embeddings
-        for j in range(num_embeddings): # Weights
+        for j in range(num_weights): # Weights
             with tf.name_scope('losses-' + str(i) + '-' + str(j)):
                 losses[i][j] = tf.nn.nce_loss(
                     weights=nce_weights[j],
@@ -268,12 +269,13 @@ with graph.as_default():
 
     # Compute normalized verison of the embeddings and nce weights.
     normalized_embeddings = [None] * num_embeddings
-    normalized_nce_weights = [None] * num_embeddings
+    normalized_nce_weights = [None] * num_weights
     for i in range(num_embeddings):
         norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings[i]),
                                      1,
                                      keep_dims=True))
         normalized_embeddings[i] = embeddings[i] / norm
+    for i in range(num_weights):
         nce_norm = tf.sqrt(tf.reduce_sum(tf.square(nce_weights[i]),
                                          1,
                                          keep_dims=True))
@@ -300,8 +302,8 @@ with tf.Session(graph=graph) as session:
     # Initialize the embeddings, weights, and biases.
     print('Initializing variables...')
     init.run()
-    target_counts = np.ndarray(shape=(vocabulary_size, 3), dtype=int)
-    context_counts = np.ndarray(shape=(vocabulary_size, 3), dtype=int)
+    target_counts = np.ndarray(shape=(vocabulary_size, num_embeddings), dtype=int)
+    context_counts = np.ndarray(shape=(vocabulary_size, num_weights), dtype=int)
     target_counts.fill(0)
     context_counts.fill(0)
 
@@ -309,7 +311,7 @@ with tf.Session(graph=graph) as session:
     # Actual training steps.
     average_loss = 0
     # Debugging counter for how many times each loss was used, can delete.
-    counts = [0] * 9
+    counts = [0] * num_embeddings
     for step in range(num_steps):
         # Generate a batch of inputs for this step.
         batch_inputs, batch_labels = generate_batch(batch_size,
@@ -330,8 +332,12 @@ with tf.Session(graph=graph) as session:
         average_loss += loss_val
 
         # Get which target and context was trained for each training example.
-        targets_i = current_argmin // num_embeddings
-        contexts_j = current_argmin % num_embeddings
+        if num_weights == 1:
+            targets_i = current_argmin
+            contexts_j = np.zeros_like(current_argmin)
+        else:
+            targets_i = current_argmin // num_embeddings
+            contexts_j = current_argmin % num_weights
 
         # Go through training examples and increment each word that is trained.
         squeeze_labels = np.squeeze(batch_labels)
@@ -363,9 +369,9 @@ with tf.Session(graph=graph) as session:
         if step % save_steps == 0:
             target_embeddings = embed_stack.eval()
             context_embeddings = nce_stack.eval()
-            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
+            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
                     model_out_dir, step, num_embeddings, embedding_size, \
-                    num_sampled, skip_window, timestamp)
+                    num_sampled, skip_window, num_weights, timestamp)
             save_as_dict(fn, target_embeddings, context_embeddings, target_counts, context_counts)
 
         # # Perform evaluation (slow) every 10000 steps.
