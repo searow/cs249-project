@@ -42,54 +42,20 @@ def eval(eval_test, dictionary, reversed_dictionary,
 
     return cosine_sim(d['w1_real_meaning'], d['w2_real_meaning'])
 
-
-
-    # Word2vec
-    # a_emb = nemb[a]  # a's embs
-    # b_emb = nemb[b]  # b's embs
-
-
-    # # We expect that d's embedding vectors on the unit hyper-sphere is
-    # # near: c_emb + (b_emb - a_emb), which has the shape [N, emb_dim].
-    # target = c_emb + (b_emb - a_emb)
-
-    # # Compute cosine distance between each pair of target and vocab.
-    # # dist has shape [N, vocab_size].
-    # dist = tf.matmul(target, nemb, transpose_b=True)
-
-    # # For each question (row in dist), find the top 4 words.
-    # _, pred_idx = tf.nn.top_k(dist, 4)
-
-    # # Nodes for computing neighbors for a given word according to
-    # # their cosine distance.
-    # nearby_word = tf.placeholder(dtype=tf.int32)  # word id
-    # nearby_emb = tf.gather(nemb, nearby_word)
-    # nearby_dist = tf.matmul(nearby_emb, nemb, transpose_b=True)
-    # nearby_val, nearby_idx = tf.nn.top_k(nearby_dist,
-    #                                      min(1000, self._options.vocab_size))
-
-    # # Nodes in the construct graph which are used by training and
-    # # evaluation to run/feed/fetch.
-    # self._analogy_a = analogy_a
-    # self._analogy_b = analogy_b
-    # self._analogy_c = analogy_c
-    # self._analogy_pred_idx = pred_idx
-    # self._nearby_word = nearby_word
-    # self._nearby_val = nearby_val
-    # self._nearby_idx = nearby_idx
-
-    return np.random.randint(0, 100)
-
 def tokenize_sentence(sentence, dictionary):
+    # Chris
     return [0, 1, 2]
 
 def extract_meanings_as_list(target_embeddings, word_index, counter_mask):
+    # David
     return []
 
 def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
+    # Alex
     return []
 
 def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_list):
+    # Jack
     return []
 
 def cosine_sim(emb1, emb2):
