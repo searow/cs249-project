@@ -60,12 +60,8 @@ def extract_meanings_as_list(target_embeddings, word_index, target_mask):
     meanings = []
 
     for i in range(k):
-        if word_index > len(target_mask):
-            print(word_index)
         if(target_mask[1][word_index][i]):
-            meanings.append(word_index)
-
-    import pdb; pdb.set_trace()
+            meanings.append(target_embeddings[i][word_index])
 
     return meanings
 
