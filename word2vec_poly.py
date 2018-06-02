@@ -31,12 +31,12 @@ import math
 print('--- End warnings ---\n\n\n')
 
 # Model parameters
-batch_size = 130
+batch_size = 100
 num_embeddings = 3 # How many embeddings per word.
 num_weights = 1 # How many contexts per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 5  # How many words to consider left and right.
-num_skips = 10  # How many times to reuse an input to generate a label.
+num_skips = 2 * skip_window  # How many times to reuse an input to generate a label.
 num_sampled = 10 # Number of negative examples to sample.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
