@@ -2,8 +2,9 @@ from utils import *
 import numpy as np
 from scipy.stats import spearmanr
 
-window_size = 5
+window_size = 1
 embeddings_fp = 'saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23_37_08'
+# embeddings_fp = 'saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13_41_24'
 corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
 eval_fp = 'data/SCWS/ratings'
 
@@ -94,8 +95,13 @@ def cosine_sim(emb1, emb2):
 
 true_scores = []
 test_scores = []
+word1_UNK = 0
+word2_UNK = 0
+eval_UNK = 0
 target_mask = filter_words(target_counts)
 for eval_test in eval_tests:
+    if eval_test['word1'] not in name_token or eval_test['word2'] not in name_token:
+        continue
     score = eval(eval_test, name_token,
             target_embeddings, target_mask, context_embeddings)
     test_scores.append(score)
