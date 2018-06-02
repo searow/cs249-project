@@ -2,7 +2,7 @@ from utils import *
 import numpy as np
 from scipy.stats import spearmanr
 
-window_size = 1
+window_sizes = range(1, 100)
 embeddings_fp = 'saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23_37_08'
 # embeddings_fp = 'saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13_41_24'
 corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
@@ -24,7 +24,7 @@ token_name = corpus_loaded['reversed_dictionary']
 eval_tests = load(eval_fp) # eval_test = list of dicts.
 
 def eval(eval_test, name_token,
-         target_embeddings, target_mask, context_embeddings):
+         target_embeddings, target_mask, context_embeddings, window_size):
     d = {}
     for i in range(1, 3):
         word_index = eval_test['word{}_index'.format(i)]
@@ -35,7 +35,7 @@ def eval(eval_test, name_token,
             tokenized_sentence, word_index, target_mask)
         context_embedding_list = extract_contexts_as_list(\
             tokenized_sentence, \
-            word_index, context_embeddings)
+            word_index, context_embeddings, window_size)
         d['w{}_real_meaning'.format(i)] = get_real_meaning_embedding( \
             context_embedding_list, \
             all_meaning_embedding_list)
@@ -67,7 +67,7 @@ def extract_meanings_as_list(target_embeddings, tokenized_sentence, word_index, 
 
     return meanings
 
-def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
+def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat, window_size):
     # Alex
     # e.g. tokenized_sentence=[0, 2, 1, 3, ...]
     # word_index = 1
@@ -93,20 +93,27 @@ def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_lis
 def cosine_sim(emb1, emb2):
     return np.dot(emb1, emb2)
 
-true_scores = []
-test_scores = []
-word1_UNK = 0
-word2_UNK = 0
-eval_UNK = 0
-target_mask = filter_words(target_counts)
-for eval_test in eval_tests:
-    if eval_test['word1'] not in name_token or eval_test['word2'] not in name_token:
-        continue
-    score = eval(eval_test, name_token,
-            target_embeddings, target_mask, context_embeddings)
-    test_scores.append(score)
-    true_scores.append(eval_test['average_human_rating'])
+def evaluate_spearman(window_size):
+    true_scores = []
+    test_scores = []
+    word1_UNK = 0
+    word2_UNK = 0
+    eval_UNK = 0
+    target_mask = filter_words(target_counts)
+    for eval_test in eval_tests:
+        if eval_test['word1'] not in name_token or eval_test['word2'] not in name_token:
+            continue
+        score = eval(eval_test, name_token,
+                target_embeddings, target_mask, context_embeddings, window_size)
+        test_scores.append(score)
+        true_scores.append(eval_test['average_human_rating'])
+    spearman_score = spearmanr(test_scores, true_scores)
+    rho_correlation = spearman_score[0]
+    return rho_correlation
 
-spearman_score = spearmanr(test_scores, true_scores)
-rho_correlation = spearman_score[0]
-print('spearman rho: ', rho_correlation)
+if __name__ == '__main__':
+    spearman_scores = []
+    for window in window_sizes:
+        score = evaluate_spearman(window)
+        spearman_scores.append(score)
+        print('w: {}, r: {}'.format(window, score))
