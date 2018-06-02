@@ -3,7 +3,11 @@ import numpy as np
 from scipy.stats import spearmanr
 
 window_size = 5
-embeddings_fp = 'saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23_37_08'
+embeddings_fp = '/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_1_dim_300_neg_65_swind_5_2018-06-01-13:41:24/saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13:41:24'
+
+#'/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_3_dim_100_neg_65_swind_5_2018-05-31-23:37:08/saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23:37:08'
+
+#'/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_1_dim_300_neg_65_swind_5_2018-06-01-13:41:24/saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13:41:24'
 corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
 eval_fp = 'data/SCWS/ratings'
 

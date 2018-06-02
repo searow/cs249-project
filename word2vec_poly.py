@@ -32,12 +32,12 @@ print('--- End warnings ---\n\n\n')
 
 # Model parameters
 batch_size = 130
-num_embeddings = 3 # How many embeddings per word.
+num_embeddings = 1 # How many embeddings per word.
 num_weights = 1 # How many contexts per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 5  # How many words to consider left and right.
 num_skips = 10  # How many times to reuse an input to generate a label.
-num_sampled = 10 # Number of negative examples to sample.
+num_sampled = 65 # Number of negative examples to sample.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
@@ -48,7 +48,7 @@ valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
-num_steps = 1000001
+num_steps = 5000001
 save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
