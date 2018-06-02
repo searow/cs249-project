@@ -48,7 +48,7 @@ valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
-num_steps = 1000001
+num_steps = 5000001
 save_steps = num_steps//10
 
 # Get the current timestamp for saving a unique fileid.
