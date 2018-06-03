@@ -52,7 +52,7 @@ def get_embs_labels(k, allembs, allcnts, reverse_dict, plot_only):
 	embs_list = []
 	labels_list = []
 	norm_cnts, mask = filter_words(allcnts, 0.25)
-	is_untrained_embs = np.count_nonzero(norm_cnts == 0)
+	is_untrained_embs = np.count_nonzero(norm_cnts) == 0
 
 	for i in range(k):
 		embs = []
