@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 window_sizes = range(1, 100)
-embeddings_fp = 'saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23_37_08'
+embeddings_fp = 'saved_embeddings_step_99999_k_3_dim_100_neg_10_swind_1_contexts_1_2018-06-02-17-05-56'
 # embeddings_fp = 'saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13_41_24'
 corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
 eval_fp = 'data/SCWS/ratings'
@@ -60,9 +60,10 @@ def extract_meanings_as_list(target_embeddings, tokenized_sentence, word_index, 
     k = len(target_embeddings)
     meanings = []
     target_token = tokenized_sentence[word_index]
+    is_untrained_embs = np.count_nonzero(target_mask[0][target_token]) == 0
 
     for i in range(k):
-        if(target_mask[1][target_token][i]):
+        if(is_untrained_embs or target_mask[1][target_token][i]):
             meanings.append(target_embeddings[i][target_token])
 
     return meanings
