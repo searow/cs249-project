@@ -2,8 +2,9 @@ from utils import *
 import numpy as np
 from scipy.stats import spearmanr
 
-window_size = 5
-embeddings_fp = 'saved_embeddings_step_5000000_k_3_dim_100_neg_65_swind_5_contexts_1_2018-05-31-23_37_08'
+window_sizes = range(1, 100)
+embeddings_fp = 'saved_embeddings_step_99999_k_3_dim_100_neg_10_swind_1_contexts_1_2018-06-02-17-05-56'
+# embeddings_fp = 'saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13_41_24'
 corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
 eval_fp = 'data/SCWS/ratings'
 
@@ -16,32 +17,32 @@ context_counts = train_loaded['context_counts']
 
 # Load corpus data.
 corpus_loaded = load(corpus_fp)
-dictionary = corpus_loaded['dictionary']
-reversed_dictionary = corpus_loaded['reversed_dictionary']
+name_token = corpus_loaded['dictionary']
+token_name = corpus_loaded['reversed_dictionary']
 
 # Load eval task.
 eval_tests = load(eval_fp) # eval_test = list of dicts.
 
-def eval(eval_test, dictionary,
-         target_embeddings, target_mask, context_embeddings):
+def eval(eval_test, name_token,
+         target_embeddings, target_mask, context_embeddings, window_size):
     d = {}
     for i in range(1, 3):
         word_index = eval_test['word{}_index'.format(i)]
         sentence = eval_test['word{}_in_context'.format(i)]
         tokenized_sentence = tokenize_sentence( \
-            sentence, dictionary)
+            sentence, name_token)
         all_meaning_embedding_list = extract_meanings_as_list(target_embeddings, \
-            word_index, target_mask)
+            tokenized_sentence, word_index, target_mask)
         context_embedding_list = extract_contexts_as_list(\
             tokenized_sentence, \
-            word_index, context_embeddings)
+            word_index, context_embeddings, window_size)
         d['w{}_real_meaning'.format(i)] = get_real_meaning_embedding( \
             context_embedding_list, \
             all_meaning_embedding_list)
 
     return cosine_sim(d['w1_real_meaning'], d['w2_real_meaning'])
 
-def tokenize_sentence(sentence, dictionary):
+def tokenize_sentence(sentence, name_token):
     # Chris
     # sentence = [0, 1, 5, 2, 1, 2, 0]
 
@@ -49,27 +50,25 @@ def tokenize_sentence(sentence, dictionary):
     words = sentence.split()
     tokenized = []
     for word in words:
-        if word not in dictionary:
+        if word not in name_token:
             tokenized.append(unknown_token)
         else:
-            tokenized.append(   dictionary[word])
+            tokenized.append(name_token[word])
     return tokenized
 
-def extract_meanings_as_list(target_embeddings, word_index, target_mask):
+def extract_meanings_as_list(target_embeddings, tokenized_sentence, word_index, target_mask):
     k = len(target_embeddings)
     meanings = []
+    target_token = tokenized_sentence[word_index]
+    is_untrained_embs = np.count_nonzero(target_mask[0][target_token]) == 0
 
     for i in range(k):
-        if word_index > len(target_mask):
-            print(word_index)
-        if(target_mask[1][word_index][i]):
-            meanings.append(word_index)
-
-    import pdb; pdb.set_trace()
+        if(is_untrained_embs or target_mask[1][target_token][i]):
+            meanings.append(target_embeddings[i][target_token])
 
     return meanings
 
-def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
+def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat, window_size):
     # Alex
     # e.g. tokenized_sentence=[0, 2, 1, 3, ...]
     # word_index = 1
@@ -83,7 +82,8 @@ def extract_contexts_as_list(tokenized_sentence, word_index, context_emb_mat):
         context_tokens = [token for token in tokenized_sentence[word_index-window_size:word_index+window_size+1] \
                     if token != tokenized_sentence[word_index]]
 
-    return [context_emb_mat[token] for token in context_tokens]
+    assert(context_emb_mat.shape[0] == 1)
+    return [context_emb_mat[0][token] for token in context_tokens]
 
 def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_list):
     # Jack
@@ -94,15 +94,27 @@ def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_lis
 def cosine_sim(emb1, emb2):
     return np.dot(emb1, emb2)
 
-true_scores = []
-test_scores = []
-target_mask = filter_words(target_counts)
-for eval_test in eval_tests:
-    score = eval(eval_test, reversed_dictionary,
-            target_embeddings, target_mask, context_embeddings)
-    test_scores.append(score)
-    true_scores.append(eval_test['average_human_rating'])
+def evaluate_spearman(window_size):
+    true_scores = []
+    test_scores = []
+    word1_UNK = 0
+    word2_UNK = 0
+    eval_UNK = 0
+    target_mask = filter_words(target_counts)
+    for eval_test in eval_tests:
+        if eval_test['word1'] not in name_token or eval_test['word2'] not in name_token:
+            continue
+        score = eval(eval_test, name_token,
+                target_embeddings, target_mask, context_embeddings, window_size)
+        test_scores.append(score)
+        true_scores.append(eval_test['average_human_rating'])
+    spearman_score = spearmanr(test_scores, true_scores)
+    rho_correlation = spearman_score[0]
+    return rho_correlation
 
-spearman_score = spearmanr(test_scores, true_scores)
-rho_correlation = spearman_score[0]
-print('spearman rho: ', rho_correlation)
+if __name__ == '__main__':
+    spearman_scores = []
+    for window in window_sizes:
+        score = evaluate_spearman(window)
+        spearman_scores.append(score)
+        print('w: {}, r: {}'.format(window, score))

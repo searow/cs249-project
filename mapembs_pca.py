@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 from utils import load_as_dict, filter_words
 
 # Hardcoded Elements:
-tgt_k = 3
+tgt_k = 1
 nce_k = 1
-folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_3_dim_100_neg_65_swind_5_2018-05-31-23:37:08'
+folder_name = '/home/david/Documents/2018SPRING/249/cs249-project/output/models_k_1_dim_300_neg_65_swind_5_2018-06-01-13:41:24'
 
 corpus = 'data/word2vec_sample/text8_tokenized_50000'
 words = ['china', 'beijing', 'japan', 'tokyo', 'spain', 'madrid', 'germany', 'berlin', 'turkey', 'ankara']
@@ -52,7 +52,7 @@ def get_embs_labels(k, allembs, allcnts, reverse_dict, plot_only):
 	embs_list = []
 	labels_list = []
 	norm_cnts, mask = filter_words(allcnts, 0.25)
-	is_untrained_embs = np.count_nonzero(norm_cnts == 0)
+	is_untrained_embs = np.count_nonzero(norm_cnts) == 0
 
 	for i in range(k):
 		embs = []

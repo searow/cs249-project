@@ -31,12 +31,12 @@ import math
 print('--- End warnings ---\n\n\n')
 
 # Model parameters
-batch_size = 130
+batch_size = 100
 num_embeddings = 3 # How many embeddings per word.
 num_weights = 1 # How many contexts per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
-skip_window = 5  # How many words to consider left and right.
-num_skips = 10  # How many times to reuse an input to generate a label.
+skip_window = 1  # How many words to consider left and right.
+num_skips = 2 * skip_window  # How many times to reuse an input to generate a label.
 num_sampled = 10 # Number of negative examples to sample.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
@@ -48,12 +48,12 @@ valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
-num_steps = 1000001
-save_steps = num_steps//10
+num_steps = 5000001
+# save_steps = num_steps//10 # Unused for now since we're only saving at end
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
-timestamp = ts.strftime('%Y-%m-%d-%H:%M:%S')
+timestamp = ts.strftime('%Y-%m-%d-%H-%M-%S')
 model_str = 'models_k_{}_dim_{}_neg_{}_swind_{}_{}'.format( \
         num_embeddings, embedding_size, num_sampled, skip_window, timestamp)
 
@@ -366,7 +366,7 @@ with tf.Session(graph=graph) as session:
             average_loss = 0
 
         # Save the normalized embeddings every n steps.
-        if step % save_steps == 0:
+        if step == num_steps - 1:
             target_embeddings = embed_stack.eval()
             context_embeddings = nce_stack.eval()
             fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
@@ -398,3 +398,4 @@ with tf.Session(graph=graph) as session:
     saver.save(session, os.path.join(model_log_dir, 'model.ckpt')) 
 
 writer.close()
+
