@@ -3,25 +3,11 @@ import numpy as np
 from scipy.stats import spearmanr
 
 window_sizes = range(1, 100)
-embeddings_fp = 'saved_embeddings_step_99999_k_3_dim_100_neg_10_swind_1_contexts_1_2018-06-02-17-05-56'
+embeddings_fp = './embedding_results/saved_embeddings_step_5000000_k_2_dim_150_neg_1_swind_5_contexts_1_2018-06-02-20-39-00/saved_embeddings_step_5000000_k_2_dim_150_neg_1_swind_5_contexts_1_2018-06-02-20-39-00'
 # embeddings_fp = 'saved_embeddings_step_5000000_k_1_dim_300_neg_65_swind_5_contexts_1_2018-06-01-13_41_24'
-corpus_fp = 'data/word2vec_sample/text8_tokenized_50000'
+corpus_fp = './data/enwik9/enwik9_tokenized_50000'
 eval_fp = 'data/SCWS/ratings'
 
-# Load trained data.
-train_loaded = load(embeddings_fp)
-target_embeddings = train_loaded['target_embeddings']
-target_counts = train_loaded['target_counts']
-context_embeddings = train_loaded['context_embeddings']
-context_counts = train_loaded['context_counts']
-
-# Load corpus data.
-corpus_loaded = load(corpus_fp)
-name_token = corpus_loaded['dictionary']
-token_name = corpus_loaded['reversed_dictionary']
-
-# Load eval task.
-eval_tests = load(eval_fp) # eval_test = list of dicts.
 
 def eval(eval_test, name_token,
          target_embeddings, target_mask, context_embeddings, window_size):
@@ -94,7 +80,8 @@ def get_real_meaning_embedding(context_embedding_list, all_meaning_embedding_lis
 def cosine_sim(emb1, emb2):
     return np.dot(emb1, emb2)
 
-def evaluate_spearman(window_size):
+def evaluate_spearman(window_size, eval_tests, name_token, context_embeddings,
+                      target_counts, target_embeddings):
     true_scores = []
     test_scores = []
     word1_UNK = 0
@@ -113,8 +100,25 @@ def evaluate_spearman(window_size):
     return rho_correlation
 
 if __name__ == '__main__':
+    # Load trained data.
+    train_loaded = load(embeddings_fp)
+    target_embeddings = train_loaded['target_embeddings']
+    target_counts = train_loaded['target_counts']
+    context_embeddings = train_loaded['context_embeddings']
+    context_counts = train_loaded['context_counts']
+
+    # Load corpus data.
+    corpus_loaded = load(corpus_fp)
+    name_token = corpus_loaded['dictionary']
+    token_name = corpus_loaded['reversed_dictionary']
+
+    # Load eval task.
+    eval_tests = load(eval_fp) # eval_test = list of dicts.
+
     spearman_scores = []
     for window in window_sizes:
-        score = evaluate_spearman(window)
+        score = evaluate_spearman(window, eval_tests, name_token,
+                                  context_embeddings,
+                                  target_counts, target_embeddings)
         spearman_scores.append(score)
-        print('w: {}, r: {}'.format(window, score))
+        print('{} {}'.format(window, score))
