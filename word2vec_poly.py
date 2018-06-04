@@ -67,6 +67,10 @@ parser.add_argument('--corpus',
                     type=str,
                     required=True,
                     help='The path to the tokenized corpus to train on')
+parser.add_argument('--eval_data',
+                    type=str,
+                    required=True,
+                    help='The path to the eval data to evaluate on')
 FLAGS, unparsed = parser.parse_known_args()
 
 log_dir = 'log'
@@ -75,6 +79,11 @@ out_dir = 'output'
 # Make sure that the corpus file exists before continuing.
 if not os.path.isfile(FLAGS.corpus):
     print('The corpus file could not be found')
+    sys.exit(1)
+
+# Make sure that the eval file exists before continuing.
+if not os.path.isfile(FLAGS.eval_data):
+    print('The eval data file could not be found')
     sys.exit(1)
 
 # Make the log directory if it does not already exist.
@@ -91,6 +100,9 @@ if not os.path.exists(out_dir):
     os.makedirs(out_dir)
     os.chmod(out_dir, 0o777)
 
+# Load eval task.
+eval_tests = load(FLAGS.eval_data)
+
 # Create Model Directories
 model_log_dir = '{}/{}'.format(log_dir, model_str)
 model_out_dir = '{}/{}'.format(out_dir, model_str)
@@ -106,6 +118,7 @@ with open(FLAGS.corpus, 'rb') as readfile:
     data = read_obj['data']
     count = read_obj['count']
     dictionary = read_obj['dictionary']
+    name_token = dictionary
     reversed_dictionary = read_obj['reversed_dictionary']
     vocabulary_size = len(count)
 # data is the tokenized corpus as a list of tokens [2, 5, 2, 1, 6, etc]
@@ -380,7 +393,9 @@ with tf.Session(graph=graph) as session:
             evals = []
             # Do the eval task for each window size.
             for eval_window_i in range(eval_windows):
-                spearman_score = scws_poly_eval.evaluate_spearman(eval_window_i)
+                spearman_score = scws_poly_eval.evaluate_spearman(eval_window_i,
+                    eval_tests, name_token, context_embeddings,
+                    target_counts, target_embeddings)
                 evals.append(spearman_score)
             eval_task_results[step] = evals
 
@@ -402,21 +417,6 @@ with tf.Session(graph=graph) as session:
                     model_out_dir, step, num_embeddings, embedding_size, \
                     num_sampled, skip_window, num_weights, timestamp)
             save_as_dict(fn, target_embeddings, context_embeddings, target_counts, context_counts)
-
-        # # Perform evaluation (slow) every 10000 steps.
-        # if step % 10000 == 0:
-        #     sim = similarity.eval()
-        #     for i in xrange(valid_size):
-        #         valid_word = reverse_dictionary[valid_examples[i]]
-        #         top_k = 8  # number of nearest neighbors
-        #         nearest = (-sim[i, :]).argsort()[1:top_k + 1]
-        #         log_str = 'Nearest to %s:' % valid_word
-        #         for k in xrange(top_k):
-        #             close_word = reverse_dictionary[nearest[k]]
-        #             log_str = '%s %s,' % (log_str, close_word)
-        #         print(log_str)
-
-    # final_embeddings = normalized_embeddings.eval()
 
     fn =  '{}/eval_results_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
             model_out_dir, num_embeddings, embedding_size, \
