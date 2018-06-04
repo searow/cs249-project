@@ -21,6 +21,7 @@ import datetime
 import time
 import pytz
 from utils import *
+import scws_poly_eval
 
 import collections
 import random
@@ -32,7 +33,7 @@ print('--- End warnings ---\n\n\n')
 
 # Model parameters
 batch_size = 100
-num_embeddings = 3 # How many embeddings per word.
+num_embeddings = 1 # How many embeddings per word.
 num_weights = 1 # How many contexts per word.
 embedding_size = 300 // num_embeddings  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
@@ -48,8 +49,11 @@ valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
-num_steps = 5000001
-# save_steps = num_steps//10 # Unused for now since we're only saving at end
+num_steps = 501
+save_steps = num_steps // 3 # Unused for now since we're only saving at end
+# Evaluation parameters.
+eval_steps = num_steps // 100
+eval_windows = 50
 
 # Get the current timestamp for saving a unique fileid.
 ts = datetime.datetime.now(pytz.timezone('US/Pacific'))
@@ -294,6 +298,7 @@ with graph.as_default():
     # Create a saver.
     saver = tf.train.Saver()
 
+eval_task_results = {}
 # Begin training.
 with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -365,8 +370,32 @@ with tf.Session(graph=graph) as session:
             print('Average loss at step ', step, ': ', average_loss)
             average_loss = 0
 
+        # Perform the evaluation task.
+        if step % eval_steps == 0:
+            target_embeddings = embed_stack.eval()
+            context_embeddings = nce_stack.eval()
+
+            # Perform evaluation for N windows, save in dictionary with the
+            # step # as the key, list of scores as values.
+            evals = []
+            # Do the eval task for each window size.
+            for eval_window_i in range(eval_windows):
+                spearman_score = scws_poly_eval.evaluate_spearman(eval_window_i)
+                evals.append(spearman_score)
+            eval_task_results[step] = evals
+
+
         # Save the normalized embeddings every n steps.
         if step == num_steps - 1:
+            target_embeddings = embed_stack.eval()
+            context_embeddings = nce_stack.eval()
+            fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
+                    model_out_dir, step, num_embeddings, embedding_size, \
+                    num_sampled, skip_window, num_weights, timestamp)
+            save_as_dict(fn, target_embeddings, context_embeddings, target_counts, context_counts)
+
+        # Save the embeddings a couple times.
+        if step % save_steps == 0 and step != 0:
             target_embeddings = embed_stack.eval()
             context_embeddings = nce_stack.eval()
             fn =  '{}/saved_embeddings_step_{}_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
@@ -389,13 +418,18 @@ with tf.Session(graph=graph) as session:
 
     # final_embeddings = normalized_embeddings.eval()
 
+    fn =  '{}/eval_results_k_{}_dim_{}_neg_{}_swind_{}_contexts_{}_{}'.format( \
+            model_out_dir, num_embeddings, embedding_size, \
+            num_sampled, skip_window, num_weights, timestamp)
+    save_as_dict(fn, eval_task_results)
+
     # Write corresponding labels for the embeddings.
     with open(model_log_dir + '/metadata.tsv', 'w') as f:
         for i in range(vocabulary_size):
             f.write(reversed_dictionary[i] + '\n')
 
     # Save the model for checkpoints.
-    saver.save(session, os.path.join(model_log_dir, 'model.ckpt')) 
+    saver.save(session, os.path.join(model_log_dir, 'model.ckpt'))
 
 writer.close()
 
