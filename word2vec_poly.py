@@ -49,7 +49,7 @@ valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 # Training parameters
-num_steps = 501
+num_steps = 17000001
 save_steps = num_steps // 3 # Unused for now since we're only saving at end
 # Evaluation parameters.
 eval_steps = num_steps // 100
